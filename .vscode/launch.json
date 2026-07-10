@@ -1,0 +1,85 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug scenario: routed",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin",
+                    "nexus_dtl"
+                ],
+                "filter": {
+                    "name": "nexus_dtl",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "routed"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug scenario: snapshot",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin",
+                    "nexus_dtl"
+                ],
+                "filter": {
+                    "name": "nexus_dtl",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "snapshot"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug scenario: credit",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin",
+                    "nexus_dtl"
+                ],
+                "filter": {
+                    "name": "nexus_dtl",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "credit"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug scenario: exit",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin",
+                    "nexus_dtl"
+                ],
+                "filter": {
+                    "name": "nexus_dtl",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "exit"
+            ],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
