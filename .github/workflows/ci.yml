@@ -34,4 +34,4 @@ jobs:
           node-version: "20"
 
       - name: Verificacion completa
-        run: bash ./ci.sh
+        run: bash scripts/ci.sh
