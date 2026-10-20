@@ -30,7 +30,7 @@ pub use market::{
 };
 pub use netting::{NetAssetFlow, NettingEngine, NettingReport, SettlementObligation};
 pub use oracle::{OracleBook, OracleObservation, PriceBand};
-pub use risk::{RiskEngine, RiskLimits, RiskSnapshot};
+pub use risk::{LiquidityStress, RiskEngine, RiskLimits, RiskSnapshot};
 pub use runtime::ScenarioReport;
 pub use treasury::{FeePolicy, InsuranceFund, TreasuryBook};
 pub use vault::{ExitTicket, LiquidityVault, VaultConfig, VaultPosition};

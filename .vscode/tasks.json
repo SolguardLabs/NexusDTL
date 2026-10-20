@@ -13,39 +13,33 @@
             "type": "shell",
             "command": "cargo build --locked --all-targets",
             "group": "build",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Rust: clippy",
             "type": "shell",
             "command": "cargo clippy --all-targets --all-features --locked -- -D warnings",
             "group": "build",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Rust: test",
             "type": "shell",
             "command": "cargo test --locked",
             "group": "test",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Node: test",
             "type": "shell",
-            "command": "bun test --timeout 30000 ./tests/node",
+            "command": "node --test tests/node/*.test.js",
             "group": "test",
             "problemMatcher": []
         },
         {
             "label": "Node: fmt check",
             "type": "shell",
-            "command": "bun run fmt:check",
+            "command": "npm run fmt:check",
             "group": "test",
             "problemMatcher": []
         },
@@ -53,41 +47,30 @@
             "label": "Protocol: scenario snapshot",
             "type": "shell",
             "command": "cargo run --quiet -- snapshot",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Protocol: scenario routed",
             "type": "shell",
             "command": "cargo run --quiet -- routed",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Protocol: scenario credit",
             "type": "shell",
             "command": "cargo run --quiet -- credit",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Protocol: scenario exit",
             "type": "shell",
             "command": "cargo run --quiet -- exit",
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": ["$rustc"]
         },
         {
             "label": "Protocol: tests",
             "dependsOrder": "sequence",
-            "dependsOn": [
-                "Rust: test",
-                "Node: test"
-            ],
+            "dependsOn": ["Rust: test", "Node: test"],
             "group": {
                 "kind": "test",
                 "isDefault": true

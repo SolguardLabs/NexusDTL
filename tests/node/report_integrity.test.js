@@ -3,6 +3,16 @@ const test = require("node:test");
 
 const { assertDigest, runScenario } = require("../helpers/runScenario");
 
+test("snapshot exposes bounded liquidity stress windows", () => {
+    const report = runScenario("snapshot");
+
+    assert.equal(report.liquidity_stress.moderate.stressed_reserve, 81_000_000_000);
+    assert.equal(report.liquidity_stress.moderate.operating_buffer, 73_000_000_000);
+    assert.equal(report.liquidity_stress.severe.stressed_reserve, 67_500_000_000);
+    assert.equal(report.liquidity_stress.severe.operating_buffer, 59_500_000_000);
+    assert.equal(report.liquidity_stress.moderate.floor_covered, true);
+});
+
 test("los assets se serializan con metadata estable", () => {
     const report = runScenario("snapshot");
 

@@ -1,5 +1,4 @@
-bun.lock
 node_modules/
+target/
 *.tsbuildinfo
 dist/
-package-lock.json

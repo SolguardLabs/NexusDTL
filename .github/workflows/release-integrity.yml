@@ -1,0 +1,43 @@
+name: release-integrity
+
+on:
+    push:
+        tags:
+            - "v*"
+    release:
+        types: [published]
+
+permissions:
+    contents: read
+
+jobs:
+    verify:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+            - uses: dtolnay/rust-toolchain@1.96.0
+              with:
+                  components: rustfmt, clippy
+            - uses: Swatinem/rust-cache@v2
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - name: Verify release refs
+              env:
+                  TAG_NAME: ${{ github.event.release.tag_name || github.ref_name }}
+                  RELEASE_NAME: ${{ github.event.release.name }}
+              run: |
+                  set -euo pipefail
+                  git fetch origin '+refs/heads/main:refs/remotes/origin/main' '+refs/heads/production:refs/remotes/origin/production' --tags
+                  test "$(git cat-file -t "refs/tags/${TAG_NAME}")" = tag
+                  target="$(git rev-parse "refs/tags/${TAG_NAME}^{}")"
+                  test "${target}" = "$(git rev-parse origin/main)"
+                  test "${target}" = "$(git rev-parse origin/production)"
+                  if [[ "${GITHUB_EVENT_NAME}" == release ]]; then
+                    test "${RELEASE_NAME}" = "Production 1.0.0"
+                  fi
+            - run: bash scripts/ci.sh

@@ -1,94 +1,40 @@
-# Politica de Seguridad
+# Política de seguridad de NexusDTL
 
-Nexus DTL modela un protocolo financiero con componentes de ejecucion,
-liquidacion, riesgo, vaults, netting, tesoreria, oraculos y gobierno operativo.
-El proyecto se trata como software sensible: cualquier cambio debe preservar
-determinismo, conservacion contable y trazabilidad de estado.
+## Fronteras de confianza
 
-## Alcance
+El motor recibe intents y batches firmados, observaciones de oráculo y operaciones de bóveda a través de escenarios locales. Las identidades Ed25519 y los digests canónicos vinculan datos de autorización; los roles de coordinador, solver, publicador de oráculo, administrador de riesgo y tesorería separan funciones. Los informes JSON describen estado, pero no son por sí solos credenciales ni permisos.
 
-Quedan dentro del alcance de revision:
-
-- Logica de liquidacion de batches.
-- Validacion de intentos y firmas.
-- Contabilidad de balances, vaults y participaciones.
-- Netting de obligaciones por activo.
-- Seleccion de bids y rutas de solver.
-- Limites de riesgo y reservas minimas.
-- Configuracion de roles operativos.
-- Serializacion canonica y generacion de digests.
-- Integridad de journal y reportes JSON.
-
-Quedan fuera del alcance operativo:
-
-- Despliegues en redes publicas.
-- Gestion real de claves.
-- Custodia de activos.
-- Integraciones con oraculos externos.
-- Frontends, indexadores o servicios de terceros.
-
-## Modelo de Control
-
-El protocolo aplica las siguientes defensas de diseno:
-
-- Tipos fuertes para cuentas, activos, vaults, facilities, intents, batches y
-  transacciones.
-- Firmas Ed25519 para intents de usuario y batches de coordinador.
-- Digests canonicos para estado, quotes, netting, vaults y journal.
-- Ejecucion atomica mediante clonacion de estado antes de confirmar cambios.
-- Validacion de nonces por cuenta.
-- Prevencion de batches duplicados y transacciones repetidas.
-- Comprobacion de conservacion por activo.
-- Limites de riesgo por notional, reserva minima y utilizacion.
-- Roles operativos separados para coordinadores, solvers, oraculos y tesoreria.
-- Reportes reproducibles desde escenarios CLI.
-
-## Proceso de Reporte
-
-Los hallazgos deben comunicarse de forma privada al mantenedor del laboratorio.
-El reporte debe incluir:
-
-- Descripcion breve del comportamiento observado.
-- Pasos de reproduccion.
-- Comandos ejecutados.
-- Escenario afectado.
-- Impacto tecnico estimado.
-- Parche sugerido, si aplica.
-
-No se deben publicar detalles tecnicos, trazas completas ni pruebas de concepto
-fuera del canal privado antes de que exista coordinacion con el mantenedor.
-
-## Criterios de Cambio
-
-Antes de aceptar cambios en logica economica o de liquidacion se debe ejecutar:
-
-```bash
-cargo fmt --all -- --check
-cargo build --all-targets --locked
-cargo test --locked
-cargo clippy --all-targets --all-features --locked -- -D warnings
-bun test --timeout 30000 ./tests/node
+```mermaid
+flowchart TB
+  I[Entrada firmada] --> A[Identidad, dominio y nonce]
+  A --> G[Roles y parámetros de gobierno]
+  G --> M[Quote, netting y límites de riesgo]
+  M --> X[Estado clonado y ejecución]
+  X --> C[Conservación por activo]
+  C --> J[Journal y digest]
+  J --> O[Informe JSON]
 ```
 
-Los cambios que afecten balances, vaults, quotes, netting o risk deben incluir
-pruebas que cubran el flujo nominal y al menos un rechazo de politica.
+## Invariantes y controles de revisión
 
-## Gestion de Dependencias
+- Un batch no debe aplicarse dos veces ni reutilizar transacciones o nonces.
+- Los flujos de netting deben equilibrar débitos y créditos por activo.
+- La suma de saldos, reservas y movimientos internos debe conservar el suministro de cada activo.
+- La evaluación de riesgo comprueba notional, fees de solver, utilización, número de facilities y reserva mínima proyectada.
+- Las operaciones de vault distinguen shares activas, shares bloqueadas y tickets pendientes; cualquier cambio de fórmula requiere revisar el valor económico de todas las posiciones.
+- Los cambios de estado se registran en el journal y modifican el digest reproducible.
 
-- Cargo debe ejecutarse con `--locked` en CI.
-- Bun debe usar lockfile reproducible.
-- Dependabot mantiene actualizaciones periodicas.
-- Cualquier actualizacion de dependencias debe pasar la suite completa.
+Estas son propiedades sujetas a pruebas y revisión, no una certificación de ausencia de defectos. La lectura de estrés es informativa y no reemplaza los límites de admisión.
 
-## Reglas de Operacion
+## Validación exigida
 
-- No usar claves reales en escenarios, tests o fixtures.
-- No registrar secretos en logs, reportes JSON ni snapshots.
-- No introducir llamadas de red en la logica de protocolo.
-- No mezclar codigo de laboratorio con infraestructura de produccion.
-- No aceptar cambios economicos sin revisar invariantes contables.
+```bash
+npm ci
+bash scripts/ci.sh
+```
 
-## Contacto
+El pipeline comprueba Rust 1.96 con formato, build, tests y Clippy, además de sintaxis JavaScript, Prettier y contratos de la CLI. Dependabot revisa Cargo, npm y Actions. Una modificación de liquidación, reserva, crédito, ticket o firma debe incluir un caso nominal y un caso de rechazo o límite económico.
 
-Este laboratorio se mantiene como proyecto privado de revision tecnica. Los
-reportes deben enviarse por el canal acordado con el propietario del repositorio.
+## Reporte privado
+
+No publique datos sensibles ni una secuencia de abuso en issues públicas. Utilice el mecanismo de reporte privado de seguridad de GitHub del repositorio si está disponible. Aporte versión y commit, precondiciones, secuencia mínima, estado inicial, resultado observado, resultado esperado e impacto económico estimado. La documentación y los problemas de integración sin contenido sensible pueden tratarse mediante issues ordinarias.

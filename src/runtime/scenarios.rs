@@ -2,9 +2,10 @@ use serde::Serialize;
 
 use crate::{
     Amount, AssetConfig, AssetId, AuctionLane, Bps, CreditFacility, Digest, ExecutionIntent,
-    FeePolicy, GovernanceConfig, InsuranceFund, KeyPair, NettingEngine, NexusLedger, NexusResult,
-    OperatorRole, OracleObservation, RfqQuote, RiskLimits, SettlementBatch, SettlementObligation,
-    SignedIntent, SignedSettlement, SolverBid, TxId, VaultConfig, VaultId,
+    FeePolicy, GovernanceConfig, InsuranceFund, KeyPair, LiquidityStress, NettingEngine,
+    NexusLedger, NexusResult, OperatorRole, OracleObservation, RfqQuote, RiskLimits,
+    SettlementBatch, SettlementObligation, SignedIntent, SignedSettlement, SolverBid, TxId,
+    VaultConfig, VaultId,
 };
 
 const NETWORK_ID: u32 = 72_900;
@@ -30,6 +31,7 @@ pub struct ScenarioReport {
     pub reserve_asset: AssetReport,
     pub collateral_asset: AssetReport,
     pub vault: VaultReport,
+    pub liquidity_stress: StressReport,
     pub balances: BalanceReport,
     pub surface: SurfaceReport,
     pub transactions: Vec<TxId>,
@@ -52,6 +54,12 @@ pub struct VaultReport {
     pub total_shares: Amount,
     pub locked_shares: Amount,
     pub pending_fees: Amount,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StressReport {
+    pub moderate: LiquidityStress,
+    pub severe: LiquidityStress,
 }
 
 #[derive(Debug, Serialize)]
@@ -371,6 +379,10 @@ fn report(
             total_shares: vault.total_shares,
             locked_shares: vault.locked_shares,
             pending_fees: vault.pending_fees,
+        },
+        liquidity_stress: StressReport {
+            moderate: LiquidityStress::evaluate(vault, Bps::new(1_000)?)?,
+            severe: LiquidityStress::evaluate(vault, Bps::new(2_500)?)?,
         },
         balances: BalanceReport {
             lp_reserve: fixture.ledger.balance_of(lp, reserve)?,
