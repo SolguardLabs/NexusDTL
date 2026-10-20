@@ -67,3 +67,24 @@ fn state_digests_change_across_state_transitions() {
     assert_ne!(snapshot["state_digest"], exit["state_digest"]);
     assert_ne!(routed["state_digest"], credit["state_digest"]);
 }
+
+#[test]
+fn snapshot_includes_observable_liquidity_stress() {
+    let snapshot = run_scenario("snapshot");
+    assert_eq!(
+        snapshot["liquidity_stress"]["moderate"]["stressed_reserve"],
+        81_000_000_000_u64
+    );
+    assert_eq!(
+        snapshot["liquidity_stress"]["moderate"]["operating_buffer"],
+        73_000_000_000_u64
+    );
+    assert_eq!(
+        snapshot["liquidity_stress"]["severe"]["stressed_reserve"],
+        67_500_000_000_u64
+    );
+    assert_eq!(
+        snapshot["liquidity_stress"]["severe"]["operating_buffer"],
+        59_500_000_000_u64
+    );
+}

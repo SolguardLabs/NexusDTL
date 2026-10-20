@@ -40,4 +40,7 @@ is_windows_bash() {
 run_cargo fmt --check
 run_cargo build --locked --all-targets
 run_cargo test --locked
+run_cargo clippy --all-targets --all-features --locked -- -D warnings
+run_node scripts/check-js.mjs
+run_node node_modules/prettier/bin/prettier.cjs --check --config .prettierrc --ignore-path .prettierignore "**/*.{js,json,md,yml,yaml}"
 run_node --test tests/node/*.test.js

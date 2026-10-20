@@ -1,134 +1,69 @@
-# Nexus DTL
+# NexusDTL
 
-![banner](./assets/banner.png)
+![NexusDTL — Solguard Labs](assets/banner.png)
 
-Nexus DTL es un prototipo de protocolo de liquidacion programable escrito en
-Rust. El sistema modela una capa de ejecucion para intentos firmados, rutas RFQ,
-subastas de solver, controles de riesgo, netting, tesoreria y vaults de
-liquidez.
+NexusDTL coordina liquidaciones programables entre cuentas, proveedores de liquidez, operadores y solvers. Su motor Rust mantiene un libro determinista de saldos y eventos; la CLI produce informes JSON reproducibles para seguimiento de rutas RFQ, crédito, subastas, netting, tesorería y bóvedas. La versión `1.0.0` se distribuye como motor local, sin dependencia de una red o custodia externa.
 
-El objetivo del proyecto es representar una base tecnica cercana a un protocolo
-real: estado determinista, serializacion canonica, firmas, journal de ejecucion
-y escenarios reproducibles desde la CLI.
+## Recorrido de una liquidación
 
-## Capacidades Principales
+```mermaid
+flowchart LR
+  U[Intent firmado] --> C[Validación canónica y nonce]
+  C --> Q[Quote RFQ y subasta de solver]
+  Q --> N[Obligaciones y netting por activo]
+  N --> R[Admisión de riesgo]
+  R --> S[Batch firmado por coordinador]
+  S --> L[Aplicación atómica al ledger]
+  L --> T[Fees, seguro y journal]
+  L --> V[Bóveda y saldos]
+  T --> D[Digest e informe JSON]
+  V --> D
+```
 
-- Ledger determinista con balances por cuenta y activo.
-- Identidades publicas derivadas de claves Ed25519.
-- Intentos de ejecucion firmados por usuarios.
-- Batches de liquidacion firmados por coordinadores.
-- Vaults de liquidez con depositos, participaciones y salidas diferidas.
-- Motor de riesgo con limites de notional, utilizacion y reservas minimas.
-- Libro de credito con facilities y draws contra reservas.
-- Libro de oraculos con publishers registrados y observaciones por mercado.
-- Subastas de rutas con lanes, bids de solver y seleccion de precio.
-- Netting de obligaciones por activo antes de liquidacion.
-- Tesoreria con politica de fees, fondo de seguro y devengos internos.
-- Gobierno operativo con roles para coordinadores, solvers, oraculos y tesoreria.
+El batch vincula red, época, coordinador, solver, bóveda, digest de intents, snapshot de liquidez y digest de netting. El estado se clona antes de ejecutar y solo se confirma tras superar las validaciones. Los tipos fuertes distinguen cuentas, activos, bóvedas y transacciones.
 
-## Estructura
+## Componentes económicos
+
+| Dominio                  | Responsabilidad                                           |
+| ------------------------ | --------------------------------------------------------- |
+| `market/`, `auction/`    | Intents, quotes, lanes y selección de bids.               |
+| `netting/`               | Equilibrio de débitos y créditos por activo.              |
+| `risk/`                  | Límites de batch y lectura de estrés de reserva.          |
+| `vault/`                 | Depósitos, shares, tickets de salida y saldos de reserva. |
+| `credit/`                | Facilities, deuda principal e interés devengado.          |
+| `treasury/`              | Fees, seguro y devengos internos.                         |
+| `ledger/`, `governance/` | Contabilidad, journal, roles y transiciones atómicas.     |
+| `crypto/`, `codec/`      | Identidades Ed25519 y serialización canónica.             |
+
+La bóveda contabiliza depósitos en unidades mínimas enteras y emite shares según su estado actual. El motor de riesgo evalúa notional, utilización, número de facilities y reserva proyectada antes de admitir un batch. Una vista adicional de estrés aplica un haircut hipotético al saldo de reserva y calcula el colchón tras el mínimo operativo y las fees devengadas:
 
 ```text
-src/
-  amount/       Unidades monetarias y basis points.
-  auction/      Lanes de subasta y bids de solver.
-  codec/        Serializacion canonica para digests.
-  credit/       Facilities de credito y posiciones.
-  crypto/       Identidades, claves y firmas.
-  error/        Tipos de error del protocolo.
-  governance/   Roles operativos y configuracion de gobierno.
-  ids/          Tipos fuertes para cuentas, activos, vaults y digests.
-  ledger/       Estado principal, cuentas, journal y ejecucion atomica.
-  market/       Assets, quotes, intentos y batches de liquidacion.
-  netting/      Obligaciones y reportes netos por activo.
-  oracle/       Publishers, observaciones y bandas de precio.
-  risk/         Limites y evaluacion de batches.
-  runtime/      CLI y escenarios reproducibles.
-  treasury/     Politica economica, seguro y devengos.
-  vault/        Vaults de liquidez, posiciones y tickets de salida.
-tests/
-  node/         Suite de integracion en JavaScript con Bun.
-  helpers/      Utilidades compartidas para tests Node.
+reserva_estresada = piso(reserva_actual × (10.000 - haircut_bps) / 10.000)
+colchón_operativo = max(0, reserva_estresada - reserva_mínima - fees_devengadas)
 ```
 
-## Requisitos
+La vista es diagnóstica: no autoriza salidas ni sustituye la revisión de exposición crediticia. [Modelo económico](docs/ECONOMICS.md) desarrolla un ejemplo con cifras y las diferencias entre conservación, liquidez y riesgo.
 
-- Rust 1.96 o superior.
-- Bun 1.3 o superior.
+## Inicio rápido
 
-## Uso
-
-Ejecutar el escenario por defecto:
+Requisitos: Rust `1.96`, Node.js `22` y npm. Las dependencias se fijan en `Cargo.lock` y `package-lock.json`.
 
 ```bash
-cargo run --quiet
+npm ci
+cargo build --locked
+cargo run --locked --quiet -- snapshot
+cargo run --locked --quiet -- routed
+cargo run --locked --quiet -- credit
+cargo run --locked --quiet -- exit
+bash scripts/ci.sh
 ```
 
-Ejecutar escenarios concretos:
+`snapshot` muestra la superficie inicial; `routed` procesa una ruta firmada; `credit` abre una facility y dispone crédito; `exit` emite un ticket de salida. Cada ejecución devuelve un único documento JSON. Por ejemplo, el snapshot inicial conserva `90_000_000_000` unidades de reserva y, con haircut de `1.000` bps y mínimo de `8_000_000_000`, informa `73_000_000_000` de colchón operativo.
 
-```bash
-cargo run --quiet -- snapshot
-cargo run --quiet -- routed
-cargo run --quiet -- credit
-cargo run --quiet -- exit
-```
+## Validación y compatibilidad
 
-Cada escenario devuelve un reporte JSON con estado de vault, balances, superficie
-operativa, transacciones emitidas, digest de estado y comprobacion de
-conservacion.
+`scripts/tests.sh` ejecuta los tests Rust y los contratos CLI Node. `scripts/ci.sh` añade formato, build, Clippy, sintaxis JavaScript y Prettier. GitHub Actions ejecuta la misma secuencia en pushes y pull requests; Dependabot revisa Cargo, npm y Actions. Los importes JSON son enteros: los consumidores JavaScript deben conservar precisión cuando superen `Number.MAX_SAFE_INTEGER`.
 
-## Pruebas
+`production` y `v1.0.0` identifican el mismo commit de esta entrega. La integración con redes, claves o activos externos requiere controles operativos propios y revisión independiente; el repositorio no incluye tales adaptadores.
 
-Suite Rust:
-
-```bash
-cargo test --locked
-```
-
-Suite JavaScript:
-
-```bash
-bun test --timeout 30000 ./tests/node
-```
-
-Suite completa:
-
-```bash
-bun run test:all
-```
-
-## Verificacion Local
-
-Formato y build Rust:
-
-```bash
-cargo fmt --all -- --check
-cargo build --all-targets --locked
-```
-
-Lint Rust:
-
-```bash
-cargo clippy --all-targets --all-features --locked -- -D warnings
-```
-
-Formato JavaScript:
-
-```bash
-bun run fmt:check
-```
-
-## CI
-
-El repositorio incluye GitHub Actions y Dependabot:
-
-- `.github/workflows/ci.yml` define la verificacion del proyecto.
-- `.github/dependabot.yml` mantiene dependencias de Cargo, Bun/npm y Actions.
-
-## Estado del Proyecto
-
-Nexus DTL es un laboratorio tecnico. La implementacion esta disenada para
-auditoria, revision de arquitectura y validacion de flujos economicos simulados.
-No debe conectarse a fondos reales, claves de produccion ni infraestructura de
-terceros sin un proceso formal de endurecimiento, revision independiente y
-validacion operacional.
+Más información: [arquitectura](docs/ARCHITECTURE.md), [economía](docs/ECONOMICS.md), [integración](docs/INTEGRATION.md), [operación](docs/OPERATIONS.md) y [seguridad](SECURITY.md).
